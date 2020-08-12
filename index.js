@@ -1,12 +1,31 @@
 const express = require("express");
 const app = express();
-const morgan = require("morgan")
+const morgan = require("morgan");
+const originalSend = app.response.send;
+const originalJson = app.response.json;
+const cors = require('cors')
 
-app.use(express.json())
-morgan.token('body',(req) => JSON.stringify(req.body))
-app.use(morgan((tokens,req,res)=>{
-    return `${tokens.method(req,res)} ${tokens.url(req,res)} ${tokens.body(req)}`
-}))
+app.use(cors())
+app.use(express.json());
+app.response.send = function sendOverWrite(body) {
+  originalSend.call(this, body);
+  this.__custombody__ = body;
+};
+app.response.json = function jsonOverride(body) {
+  originalJson.call(this, body);
+  this.__custombody__ = body;
+};
+morgan.token("body", (req) => JSON.stringify(req.body));
+//morgan.token('responseData',(req,res) => JSON.stringify(res.status))
+app.use(
+  morgan((tokens, req, res) => {
+    return `${tokens.method(req, res)} ${tokens.url(req, res)} ${tokens.body(
+      req
+    )}`;
+  })
+);
+
+morgan.token('responseData', (_req, res) => JSON.stringify(res.__custombody__));
 
 let persons = [
   {
@@ -32,11 +51,9 @@ function getDate() {
   return Date();
 }
 const generateId = () => {
-    const maxId = persons.length > 0
-      ? Math.max(...persons.map(n => n.id))
-      : 0
-    return maxId + 1
-  }
+  const maxId = persons.length > 0 ? Math.max(...persons.map((n) => n.id)) : 0;
+  return maxId + 1;
+};
 app.get("/", (req, res) => {
   res.send("<h1>Hello World!</h1>");
 });
@@ -48,51 +65,64 @@ app.get("/info", (req, res) => {
 app.get("/api/persons", (req, res) => {
   res.json(persons);
 });
-app.get("/api/persons/:id",
-  (req, res) => {
+app.get("/api/persons/:id", (req, res) => {
+  const id = Number(req.params.id);
+  console.log(id);
+  const person = persons.find((person) => person.id === id);
+  console.log(person);
+  if (person) {
+    return res.json(person);
+  } else {
+    return res.status(404).json({ error: "Nada" });
+  }
+});
 
-    const id = Number(req.params.id);
-    console.log(id)
-    const person = persons.find(person => person.id === id);
-    console.log(person)
-    if (person) {
-    return  res.json(person);
-    } else {
-        return res.status(404).json({error: "Nada"})
-    }
-  });
+app.delete("/api/persons/:id", (request, response) => {
+  const id = Number(request.params.id);
+  persons = persons.filter((note) => note.id !== id);
 
-  app.delete('/api/persons/:id', (request, response) => {
-    const id = Number(request.params.id)
-    persons = persons.filter(note => note.id !== id)
-  
-    response.status(204).end()
+  response.status(204).end();
+});
+app.post("/api/persons", (request, response) => {
+  const body = request.body;
+
+  if (!body.name || !body.number) {
+    return response.status(400).json({
+      error: "name missing or number missing",
+    });
+  }
+  if (persons.find((person) => person.name == body.name)) {
+    return response.status(400).json({
+      error: "Name must be unique",
+    });
+  }
+  const newPerson = {
+    name: body.name,
+    number: body.number,
+    date: getDate(),
+    id: generateId(),
+  };
+
+  persons = persons.concat(newPerson);
+
+  response.json(newPerson);
+});
+app.use(
+  morgan(function (tokens, req, res) {
+    return [
+      tokens.method(req, res),
+      tokens.url(req, res),
+      tokens.status(req, res),
+      tokens.res(req, res, ""),
+      "-",
+      tokens.responseData(req, res),
+      tokens["response-time"](req, res),
+      "ms",
+    ].join(" ");
   })
-  app.post('/api/persons', (request, response) => {
-    const body = request.body
- 
-    if (!body.name || !body.number) {
-      return response.status(400).json({ 
-        error: 'name missing or number missing' 
-      })
-    }
-    if(persons.find(person => person.name == body.name)){
-        return response.status(400).json({
-            error:'Name must be unique'
-        })
-    }
-    const newPerson = {
-      name: body.name,
-      number: body.number,
-      date: getDate(),
-      id: generateId(),
-    }
-  
-    persons= persons.concat(newPerson)
-  
-    response.json(newPerson)
-  }) 
-const PORT = 3001;
+);
+
+const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
