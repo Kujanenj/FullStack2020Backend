@@ -5,6 +5,8 @@ const originalSend = app.response.send;
 const originalJson = app.response.json;
 const cors = require('cors')
 
+app.use(express.static('build'))
+
 app.use(cors())
 app.use(express.json());
 app.response.send = function sendOverWrite(body) {
