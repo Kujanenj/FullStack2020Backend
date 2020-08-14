@@ -12,10 +12,6 @@ app.use(express.static("build"));
 app.use(express.json());
 app.use(cors());
 
-const unknownEndpoint = (request, response) => {
-  response.status(404).send({ error: "unknown endpoint" });
-};
-//app.use(unknownEndpoint)
 
 app.response.send = function sendOverWrite(body) {
   originalSend.call(this, body);
@@ -120,6 +116,7 @@ const errorHandler = (error, req, res, next) => {
     return res.status(400).send({ error: "Wrong id" });
   }
   if(error.name ==="ValidationError"){
+    console.log("Val error")
     return res.status(400).json({ error: error.message })
   }
   next(error);
