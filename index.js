@@ -8,10 +8,17 @@ const originalJson = app.response.json;
 const cors = require("cors");
 const Contact = require("./models/contact");
 
-app.use(express.static("build"));
 
-app.use(cors());
+app.use(express.static("build"));
 app.use(express.json());
+app.use(cors());
+
+
+const unknownEndpoint = (request, response) => {
+  response.status(404).send({ error: 'unknown endpoint' })
+}
+//app.use(unknownEndpoint)
+
 app.response.send = function sendOverWrite(body) {
   originalSend.call(this, body);
   this.__custombody__ = body;
@@ -68,10 +75,14 @@ app.get("/api/persons/:id", (req, res) => {
 });
 
 app.delete("/api/persons/:id", (request, response) => {
-  const id = Number(request.params.id);
-  persons = persons.filter((note) => note.id !== id);
-
-  response.status(204).end();
+  const id = request.params.id;
+  console.log(id)
+  Contact.findByIdAndDelete(id).then((result) => {
+    response.status(204).end();
+  }).catch(error => {
+    console.log(error)
+    response.status(500).end()
+  })
 });
 app.post("/api/persons", (request, response) => {
   const body = request.body;
@@ -82,12 +93,12 @@ app.post("/api/persons", (request, response) => {
     });
   }
 
- /* if (Contact.find((contact) => contact.name === body.name)) {
+  /* if (Contact.find((contact) => contact.name === body.name)) {
     return response.status(400).json({
       error: "Name must be unique",
     });
   }*/
-  
+
   const newContact = new Contact({
     name: body.name,
     number: body.number,
@@ -118,3 +129,5 @@ const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+//{"_id":{"$oid":"5f3660b7f0232a299251e718"},"name":"Insomniaa","number":"0111","date":{"$date":{"$numberLong":"1597399223000"}},"id":{"$numberInt":"1"},"__v":{"$numberInt":"0"}}
