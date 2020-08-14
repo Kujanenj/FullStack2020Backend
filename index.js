@@ -8,15 +8,13 @@ const originalJson = app.response.json;
 const cors = require("cors");
 const Contact = require("./models/contact");
 
-
 app.use(express.static("build"));
 app.use(express.json());
 app.use(cors());
 
-
 const unknownEndpoint = (request, response) => {
-  response.status(404).send({ error: 'unknown endpoint' })
-}
+  response.status(404).send({ error: "unknown endpoint" });
+};
 //app.use(unknownEndpoint)
 
 app.response.send = function sendOverWrite(body) {
@@ -36,53 +34,61 @@ app.use(
     )}`;
   })
 );
-
 morgan.token("responseData", (_req, res) => JSON.stringify(res.__custombody__));
-function countPersons() {
-  return persons.length;
-}
 function getDate() {
   return Date();
 }
-const generateId = () => {
-  const maxId =
-    Contact.find({}).length > 0 ? Math.max(...persons.map((n) => n.id)) : 0;
-  return maxId + 1;
-};
+
 app.get("/", (req, res) => {
   res.send("<h1>Hello World!</h1>");
 });
 app.get("/info", (req, res) => {
-  res.send(
-    `<p> PhoneBook has info of ${countPersons()} people</p> <p> ${getDate()}`
-  );
+  Contact.find({}).then(result =>{
+    res.send(
+      `<p> PhoneBook has info of ${result.length} people</p> <p> ${getDate()}`
+    );
+  }
+
+  )
 });
 app.get("/api/persons", (request, response) => {
   Contact.find({}).then((contacts) => {
     response.json(contacts.map((contact) => contact.toJSON()));
   });
 });
-app.get("/api/persons/:id", (req, res) => {
-  const id = Number(req.params.id);
-  console.log(id);
-  const person = persons.find((person) => person.id === id);
-  console.log(person);
-  if (person) {
-    return res.json(person);
-  } else {
-    return res.status(404).json({ error: "Nada" });
-  }
+app.get("/api/persons/:id", (req, res, next) => {
+  Contact.findById(req.params.id)
+    .then((result) => {
+      if (result) {
+        return res.json(result);
+      } else {
+        return res.status(404).json({ error: "Nada" });
+      }
+    })
+    .catch((error) => {
+      next(error);
+    });
 });
-
-app.delete("/api/persons/:id", (request, response) => {
-  const id = request.params.id;
-  console.log(id)
-  Contact.findByIdAndDelete(id).then((result) => {
-    response.status(204).end();
-  }).catch(error => {
-    console.log(error)
-    response.status(500).end()
-  })
+app.put("/api/persons/:id", (req, res, next) => {
+  const body = req.body;
+  const contactToUpdate = {
+    name: body.name,
+    number: body.number,
+  };
+  Contact.findByIdAndUpdate(req.params.id, contactToUpdate, { new: true })
+    .then((updatedContact) => {
+      res.json(updatedContact);
+    })
+    .catch(error => next(error));
+});
+app.delete("/api/persons/:id", (request, response, next) => {
+  Contact.findByIdAndDelete(request.params.id)
+    .then((result) => {
+      response.status(204).end();
+    })
+    .catch((error) => {
+      next(error);
+    });
 });
 app.post("/api/persons", (request, response) => {
   const body = request.body;
@@ -92,20 +98,11 @@ app.post("/api/persons", (request, response) => {
       error: "name missing or number missing",
     });
   }
-
-  /* if (Contact.find((contact) => contact.name === body.name)) {
-    return response.status(400).json({
-      error: "Name must be unique",
-    });
-  }*/
-
   const newContact = new Contact({
     name: body.name,
     number: body.number,
     date: getDate(),
-    id: generateId(),
   });
-
   newContact.save().then((savedContact) => {
     response.json(savedContact);
   });
@@ -124,10 +121,19 @@ app.use(
     ].join(" ");
   })
 );
+const errorHandler = (error, req, res, next) => {
+  console.error(error.message);
+
+  if (error.name === "CastError") {
+    return res.status(400).send({ error: "Wrong id" });
+  }
+  next(error);
+};
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
-//{"_id":{"$oid":"5f3660b7f0232a299251e718"},"name":"Insomniaa","number":"0111","date":{"$date":{"$numberLong":"1597399223000"}},"id":{"$numberInt":"1"},"__v":{"$numberInt":"0"}}
+//{"_id":{"$oid":"5f3689a31b39550e29e9ad10"},"name":"Insomniaaa","number":"0111","date":{"$date":{"$numberLong":"1597409699000"}},"__v":{"$numberInt":"0"}}
