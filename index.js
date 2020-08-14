@@ -43,13 +43,11 @@ app.get("/", (req, res) => {
   res.send("<h1>Hello World!</h1>");
 });
 app.get("/info", (req, res) => {
-  Contact.find({}).then(result =>{
+  Contact.find({}).then((result) => {
     res.send(
       `<p> PhoneBook has info of ${result.length} people</p> <p> ${getDate()}`
     );
-  }
-
-  )
+  });
 });
 app.get("/api/persons", (request, response) => {
   Contact.find({}).then((contacts) => {
@@ -79,7 +77,7 @@ app.put("/api/persons/:id", (req, res, next) => {
     .then((updatedContact) => {
       res.json(updatedContact);
     })
-    .catch(error => next(error));
+    .catch((error) => next(error));
 });
 app.delete("/api/persons/:id", (request, response, next) => {
   Contact.findByIdAndDelete(request.params.id)
@@ -90,14 +88,8 @@ app.delete("/api/persons/:id", (request, response, next) => {
       next(error);
     });
 });
-app.post("/api/persons", (request, response) => {
+app.post("/api/persons", (request, response,next) => {
   const body = request.body;
-
-  if (!body.name || !body.number) {
-    return response.status(400).json({
-      error: "name missing or number missing",
-    });
-  }
   const newContact = new Contact({
     name: body.name,
     number: body.number,
@@ -105,7 +97,7 @@ app.post("/api/persons", (request, response) => {
   });
   newContact.save().then((savedContact) => {
     response.json(savedContact);
-  });
+  }).catch(error => next(error));
 });
 app.use(
   morgan(function (tokens, req, res) {
@@ -126,6 +118,9 @@ const errorHandler = (error, req, res, next) => {
 
   if (error.name === "CastError") {
     return res.status(400).send({ error: "Wrong id" });
+  }
+  if(error.name ==="ValidationError"){
+    return res.status(400).json({ error: error.message })
   }
   next(error);
 };
