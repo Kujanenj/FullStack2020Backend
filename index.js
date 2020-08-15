@@ -77,15 +77,16 @@ app.put("/api/persons/:id", (req, res, next) => {
 });
 app.delete("/api/persons/:id", (request, response, next) => {
   Contact.findByIdAndDelete(request.params.id)
-    .then((result) => {
+    .then(() => {
       response.status(204).end();
     })
     .catch((error) => {
       next(error);
     });
 });
-app.post("/api/persons", (request, response,next) => {
+app.post("/api/persons", (request, response, next) => {
   const body = request.body;
+  console.log("adad")
   const newContact = new Contact({
     name: body.name,
     number: body.number,
@@ -115,9 +116,9 @@ const errorHandler = (error, req, res, next) => {
   if (error.name === "CastError") {
     return res.status(400).send({ error: "Wrong id" });
   }
-  if(error.name ==="ValidationError"){
-    console.log("Val error")
-    return res.status(400).json({ error: error.message })
+  if (error.name === "ValidationError") {
+    console.log("Val error");
+    return res.status(400).json({ error: error.message });
   }
   next(error);
 };
