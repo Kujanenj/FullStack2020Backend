@@ -4,13 +4,13 @@
   "description": "testBackend",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "deploy": "git push heroku master",
     "deploy:full": "npm run build:ui && git add . && git commit -m uibuild && git push && npm run deploy",
     "logs:prod": "heroku logs --tail",
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "jest --verbose"
   },
   "author": "kujanenj",
   "license": "ISC",
@@ -24,6 +24,7 @@
   },
   "devDependencies": {
     "eslint": "^7.7.0",
+    "jest": "^26.4.0",
     "nodemon": "^2.0.4"
   }
 }

@@ -2,7 +2,8 @@ module.exports = {
   "env": {
     "browser": true,
     "commonjs": true,
-    "es2020": true
+    "es2020": true,
+    "jest" : true
   },
   "extends": "eslint:recommended",
   "parserOptions": {
@@ -21,10 +22,10 @@ module.exports = {
       "error",
       "double"
     ],
-	'semi': [
-            'error',
-            'never'
-        ],
+    "semi": [
+      "error",
+      "never"
+    ],
     "eqeqeq": "error",
     "no-trailing-spaces": "error",
     "object-curly-spacing": [
@@ -34,4 +35,4 @@ module.exports = {
       "error", { "before": true, "after": true }
     ]
   }
-};
+}
