@@ -34,4 +34,16 @@ describe("total likes", () => {
   test("blogs with 5",() => {
     expect(listHelper.totalLikes(BlogsMultiple)).toBe(36)
   })
+  test("mostBlogs" , () => {
+    expect(listHelper.mostBlogs(BlogsMultiple)).toEqual({
+      author: "Robert C. Martin",
+      blogs: 3
+    })
+  } )
+  test("mostLikes",() => {
+    expect(listHelper.mostLikes(BlogsMultiple)).toEqual({
+      author: "Edsger W. Dijkstra",
+      likes: 17
+    })
+  })
 })
