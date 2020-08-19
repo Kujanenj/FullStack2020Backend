@@ -13,6 +13,7 @@ const jwt = require("jsonwebtoken")
 
 
 blogsRouter.get("/", async (request, response) => {
+ 
   const blogs = await Blog.find({}).populate("user", { username: 1, name: 1 })
   response.json(blogs)
 })
@@ -24,7 +25,7 @@ blogsRouter.post("/", async (request, response) => {
   if(!token || !decodedToken.id){
     return response.status(401).json({ error: "token missing or invalid" })
   }*/
-  console.log("******")
+  
   const user = await User.findById(request.token.id)
 
   const newBlog = new Blog({
@@ -34,7 +35,7 @@ blogsRouter.post("/", async (request, response) => {
     likes: body.likes,
     user : user._id
   })
-  console.log("******")
+  
   const savedBlog = await newBlog.save()
 
   user.blogs=user.blogs.concat(savedBlog._id)
@@ -47,6 +48,12 @@ blogsRouter.post("/", async (request, response) => {
 })
 
 blogsRouter.delete("/:id", async (req,res) => {
+
+  const user = await User.findById(req.body.user)
+  const blog = await Blog.findById(req.params.id)
+  if(!(user.id.toString() === blog.user.toString())){
+    return res.status(401).json({error: "Unauthorized"})
+  }
   await Blog.deleteOne({ _id: req.params.id })
   res.status(204).end()
 })
@@ -72,4 +79,6 @@ module.exports = blogsRouter
 		"user" : "5f3cd51e4450100e80dc2f32"
   }
 
+
+  {"_id":{"$oid":"5f3cefb695d4392659a5330c"},"likes":{"$numberInt":"2"},"title":"TOKENISE","author":"new","url":"String","user":{"$oid":"5f3cec83f51555246a7845be"},"__v":{"$numberInt":"0"}}
 */
