@@ -5,6 +5,7 @@ const requestLogger = (request, response, next) => {
   logger.info("Method:", request.method)
   logger.info("Path:  ", request.path)
   logger.info("Body:  ", request.body)
+  logger.info("Header:", request.header)
   logger.info("---")
   next()
 }
@@ -33,11 +34,16 @@ const getTokenFrom = request => {
 }
 const tokenExtractor =(request,response,next) => {
 
+  logger.info(request.path , request.method)
+  
   const token = getTokenFrom(request)
   const decodedToken= jwt.verify(token,process.env.SECRET)
   if(!token || !decodedToken.id){
+    logger.info("Invalid token")
+    
     next(new Error("JsonWebToken"))
   }
+  logger.info("Token was valid")
   request["token"]=decodedToken
   next()
 }

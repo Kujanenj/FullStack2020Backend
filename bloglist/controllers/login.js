@@ -10,14 +10,13 @@ loginRouter.post("/", async (request, response) => {
   const passwordCorrect = user === null
     ? false
     : crypto.scryptSync(body.password,user.salt,64).toString("hex")===user.passwordHash
-
-  console.log(user)
   if (!(user && passwordCorrect)) {
+    console.log("LOGIN FAILED")
     return response.status(401).json({
       error: "invalid username or password"
     })
   }
-
+  console.log("LOGIN SUCCESS")
   const userForToken = {
     username: user.username,
     id: user._id,
