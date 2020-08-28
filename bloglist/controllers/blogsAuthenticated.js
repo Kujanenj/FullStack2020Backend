@@ -1,7 +1,7 @@
 const blogsAuthenticatedRouter = require("express").Router()
 const Blog = require("../models/blog")
 const User = require("../models/user")
-
+const logger = require("../utils/logger")
 blogsAuthenticatedRouter.post("/", async (request, response) => {
   const body = request.body
 
@@ -29,8 +29,8 @@ blogsAuthenticatedRouter.post("/", async (request, response) => {
 })
 
 blogsAuthenticatedRouter.delete("/:id", async (req, res) => {
-
-  const user = await User.findById(req.body.user)
+  
+  const user = await User.findById(req.token.id)
   const blog = await Blog.findById(req.params.id)
   if (!(user.id.toString() === blog.user.toString())) {
     return res.status(401).json({ error: "Unauthorized" })
