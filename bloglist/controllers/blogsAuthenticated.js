@@ -46,7 +46,7 @@ blogsAuthenticatedRouter.put("/:id", async (req, res) => {
     likes: req.body.likes
   }
   await Blog.updateOne({ _id: req.params.id }, newBlog)
-  res.status(200).json(newBlog)
+  res.status(200).json({ ...newBlog,id:req.params.id })
 })
 
 module.exports = blogsAuthenticatedRouter
