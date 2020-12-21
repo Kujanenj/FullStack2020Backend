@@ -2,6 +2,18 @@ const blogsAuthenticatedRouter = require("express").Router()
 const Blog = require("../models/blog")
 const User = require("../models/user")
 const logger = require("../utils/logger")
+blogsAuthenticatedRouter.post("/:id/comments",async (req,res) =>{
+  const blog = await Blog.findById(req.body.blog.id)
+  await Blog.updateOne({_id:blog.id},
+    {"$push":{
+      comments: req.body.comment
+    }})
+    let updatedBlog = await Blog.findById(blog.id)
+ res.status(201).json(updatedBlog)
+
+
+
+})
 blogsAuthenticatedRouter.post("/", async (request, response) => {
   const body = request.body
 
@@ -27,7 +39,6 @@ blogsAuthenticatedRouter.post("/", async (request, response) => {
 
 
 })
-
 blogsAuthenticatedRouter.delete("/:id", async (req, res) => {
   
   const user = await User.findById(req.token.id)
