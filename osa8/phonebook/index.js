@@ -1,5 +1,27 @@
 const { ApolloServer, gql } = require('apollo-server')
 const { v1: uuid } = require('uuid')
+const myPlugin = {
+
+    // Fires whenever a GraphQL request is received from a client.
+    requestDidStart(requestContext) {
+
+        return {
+
+            // Fires whenever Apollo Server will parse a GraphQL
+            // request to create its associated document AST.
+            parsingDidStart(requestContext) {
+                console.log('Parsing started!');
+            },
+
+            // Fires whenever Apollo Server will validate a
+            // request's document AST against your GraphQL schema.
+            validationDidStart(requestContext) {
+                console.log('Validation started!');
+            },
+
+        }
+    },
+};
 let authors = [
     {
         name: 'Robert Martin',
@@ -145,8 +167,23 @@ const resolvers = {
     },
     Mutation: {
         addBook: (root, args) => {
+
+            console.log("Adding book", args)
             const book = { ...args, id: uuid() }
             books = books.concat(book)
+            const author =authors.find(p => p.name ===args.author)
+            console.log("Look me here")
+            if(!author){
+                console.log("No new author, will add")
+                const newAuthor = {
+                    name: args.author,
+                    id: uuid()
+                }
+                console.log(newAuthor)
+                console.log(authors)
+                authors=authors.concat(newAuthor)
+                console.log(authors)
+            }
             return book
         },
         editAuthor: (root, args) => {
@@ -164,6 +201,9 @@ const resolvers = {
 const server = new ApolloServer({
     typeDefs,
     resolvers,
+    plugins: [
+        myPlugin
+    ]
 })
 
 server.listen().then(({ url }) => {
