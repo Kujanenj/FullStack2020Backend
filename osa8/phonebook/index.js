@@ -1,5 +1,14 @@
-const { ApolloServer, gql } = require('apollo-server')
+const { ApolloServer, UserInputError, gql, AuthenticationError } = require('apollo-server')
+const jwt = require('jsonwebtoken')
+require('dotenv').config()
+const mongoURI = process.env.MONGODB_URI
+const JWT_SECRET = process.env.JWT
+const mongoose = require('mongoose')
+const Author = require('./models/author')
+const Book = require('./models/book')
+
 const { v1: uuid } = require('uuid')
+const author = require('./models/author')
 const myPlugin = {
 
     // Fires whenever a GraphQL request is received from a client.
@@ -22,96 +31,26 @@ const myPlugin = {
         }
     },
 };
-let authors = [
-    {
-        name: 'Robert Martin',
-        id: "afa51ab0-344d-11e9-a414-719c6709cf3e",
-        born: 1952,
-    },
-    {
-        name: 'Martin Fowler',
-        id: "afa5b6f0-344d-11e9-a414-719c6709cf3e",
-        born: 1963
-    },
-    {
-        name: 'Fyodor Dostoevsky',
-        id: "afa5b6f1-344d-11e9-a414-719c6709cf3e",
-        born: 1821
-    },
-    {
-        name: 'Joshua Kerievsky', // birthyear not known
-        id: "afa5b6f2-344d-11e9-a414-719c6709cf3e",
-    },
-    {
-        name: 'Sandi Metz', // birthyear not known
-        id: "afa5b6f3-344d-11e9-a414-719c6709cf3e",
-    },
-]
+mongoose.set('useCreateIndex', true)
 
-/*
- * Saattaisi olla järkevämpää assosioida kirja ja sen tekijä tallettamalla kirjan yhteyteen tekijän nimen sijaan tekijän id
- * Yksinkertaisuuden vuoksi tallennamme kuitenkin kirjan yhteyteen tekijän nimen
-*/
+console.log('connecting to', mongoURI)
 
-let books = [
-    {
-        title: 'Clean Code',
-        published: 2008,
-        author: 'Robert Martin',
-        id: "afa5b6f4-344d-11e9-a414-719c6709cf3e",
-        genres: ['refactoring']
-    },
-    {
-        title: 'Agile software development',
-        published: 2002,
-        author: 'Robert Martin',
-        id: "afa5b6f5-344d-11e9-a414-719c6709cf3e",
-        genres: ['agile', 'patterns', 'design']
-    },
-    {
-        title: 'Refactoring, edition 2',
-        published: 2018,
-        author: 'Martin Fowler',
-        id: "afa5de00-344d-11e9-a414-719c6709cf3e",
-        genres: ['refactoring']
-    },
-    {
-        title: 'Refactoring to patterns',
-        published: 2008,
-        author: 'Joshua Kerievsky',
-        id: "afa5de01-344d-11e9-a414-719c6709cf3e",
-        genres: ['refactoring', 'patterns']
-    },
-    {
-        title: 'Practical Object-Oriented Design, An Agile Primer Using Ruby',
-        published: 2012,
-        author: 'Sandi Metz',
-        id: "afa5de02-344d-11e9-a414-719c6709cf3e",
-        genres: ['refactoring', 'design']
-    },
-    {
-        title: 'Crime and punishment',
-        published: 1866,
-        author: 'Fyodor Dostoevsky',
-        id: "afa5de03-344d-11e9-a414-719c6709cf3e",
-        genres: ['classic', 'crime']
-    },
-    {
-        title: 'The Demon ',
-        published: 1872,
-        author: 'Fyodor Dostoevsky',
-        id: "afa5de04-344d-11e9-a414-719c6709cf3e",
-        genres: ['classic', 'revolution']
-    },
-]
+mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
+    .then(() => {
+        console.log('connected to MongoDB')
+    })
+    .catch((error) => {
+        console.log('error connection to MongoDB:', error.message)
+    })
+
 
 const typeDefs = gql`
 type Book {
     title: String!
     published: Int!
-    author : String!
-    id: ID!
+    author : Author!
     genres: [String]!
+    id: ID!
 }
 type Author {
     name: String!
@@ -137,66 +76,104 @@ type Author {
         name: String!
         setBornTo: Int!
     ): Author
+    addAuthor(
+        name: String!
+        born: Int
+    ): Author
   }
 `
 
 const resolvers = {
     Query: {
-        bookCount: () => books.length,
-        authorCount: () => authors.length,
-        allAuthors: () => authors,
+        bookCount: async () => (await Book.find({})).length,
+        authorCount: async() => await Author.find({}).length,
+        allAuthors: async() => await Author.find({}),
         allBooks: (root, args) => {
-            let returnArray = books
-            if (args.author) {
-                returnArray = returnArray.filter(book => book.author === args.author)
-            }
-            if (args.genre) {
+            try{
 
-                return array = returnArray.filter(book => book.genres.includes(args.genre))
+                console.log("All books with args?",args)
+                if (args.author) {
+                    console.log("let me out")
+                    returnArray = returnArray.filter(book => book.author === args.author)
+                }
+                if (args.genre) {
+                    return Book.find({ genres: { $in: args.genre } }).populate("author")
+                }
+                return Book.find({}).populate("author")
+            }catch(err){
+                console.log(err)
             }
-            return returnArray
         }
     },
     Author: {
         bookCount: (root) => {
+            let authorID = Author.findOne({ name: root.name })
+            if (!authorID) {
+                //This should not be possible
+                return null
+            }
             return (
-                books.filter(book => book.author === root.name).length
+                Book.find({ author: authorID }).length
+                //books.filter(book => book.author === root.name).length
             )
         }
 
     },
     Mutation: {
-        addBook: (root, args) => {
-
-            console.log("Adding book", args)
-            const book = { ...args, id: uuid() }
-            books = books.concat(book)
-            const author =authors.find(p => p.name ===args.author)
-            console.log("Look me here")
-            if(!author){
-                console.log("No new author, will add")
-                const newAuthor = {
-                    name: args.author,
-                    id: uuid()
-                }
-                console.log(newAuthor)
-                console.log(authors)
-                authors=authors.concat(newAuthor)
-                console.log(authors)
+        addAuthor: async (root, args) => {
+            try {
+                console.log("adding author", args)
+                const author = new Author({ ...args })
+                console.log("Made a new author")
+                await author.save()
+                console.log("And saved it")
+                return author
+            } catch (err) {
+                console.log(err)
+                throw new UserInputError(err.message, {
+                    invalidArgs: args
+                })
             }
-            return book
         },
-        editAuthor: (root, args) => {
-            console.log("Updating author",args)
-            const author = authors.find(p => p.name === args.name)
-            if (!author) {
-                console.log("No author found")
-                return null
+        addBook: async (root, args) => {
+            try {
+                console.log("adding book")
+                let author = await Author.findOne({ name: args.author })
+                if (!author) {
+                    console.log("no auth found")
+                    author = new Author({ name: args.author })
+                    await author.save()
+                }
+                console.log("Creating a book with author", author)
+                const book = new Book({ ...args, author: author })
+                await book.save()
+                return book
+            } catch (err) {
+                throw new UserInputError(err.message, {
+                    invalidArgs: args
+                })
             }
-            const updatedAuthor = { ...author, born: args.setBornTo }
-            authors = authors.map(p => p.name === args.name ? updatedAuthor : p)
-            console.log(authors)
-            return updatedAuthor
+        },
+        editAuthor:async (root, args) => {
+            try {
+
+                console.log("Updating author", args)
+                const author = await Author.findOne({ name: args.name })
+                if (!author) {
+                    console.log("No author found")
+                    return null
+                }
+                console.log("Author found",author)
+                author.born = args.setBornTo
+                console.log(author)
+                console.log("Trying to save and return")
+                await author.save()
+                return author
+            } catch (err) {
+                throw new UserInputError(error.message, {
+                    invalidArgs: args,
+                })
+            }
         }
     }
 }
