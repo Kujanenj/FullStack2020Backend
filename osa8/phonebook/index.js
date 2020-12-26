@@ -187,12 +187,15 @@ const resolvers = {
             return book
         },
         editAuthor: (root, args) => {
+            console.log("Updating author",args)
             const author = authors.find(p => p.name === args.name)
             if (!author) {
+                console.log("No author found")
                 return null
             }
             const updatedAuthor = { ...author, born: args.setBornTo }
             authors = authors.map(p => p.name === args.name ? updatedAuthor : p)
+            console.log(authors)
             return updatedAuthor
         }
     }
