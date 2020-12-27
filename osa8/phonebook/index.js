@@ -68,6 +68,7 @@ type Author {
 }
 
   type Query {
+      allGenres : [String]
       bookCount : Int!
       authorCount: Int!
       allBooks(author: String genre: String): [Book!]!
@@ -101,11 +102,23 @@ type Author {
 
 const resolvers = {
     Query: {
+        allGenres: async () => {
+            let genreList = []
+            const allBooks = await Book.find({})
+
+            allBooks.forEach(function (book, index) {
+                console.log(book.genres)
+                genreList=genreList.concat(book.genres)
+            });
+            console.log("returning genrelist")
+            return [...new Set(genreList)]
+
+        },
         me: (root, args, context) => {
             return context.currentUser
         },
         bookCount: async () => (await Book.find({})).length,
-        authorCount: async () => await Author.find({}).length,
+        authorCount: async () => (await Author.find({})).length,
         allAuthors: async () => await Author.find({}),
         allBooks: (root, args) => {
             try {
@@ -115,7 +128,8 @@ const resolvers = {
                     console.log("let me out")
                     returnArray = returnArray.filter(book => book.author === args.author)
                 }
-                if (args.genre) {
+                if (args.genre != undefined && args.genre != "") {
+                    console.log("Will do something")
                     return Book.find({ genres: { $in: args.genre } }).populate("author")
                 }
                 return Book.find({}).populate("author")
@@ -205,7 +219,7 @@ const resolvers = {
                 })
             }
         },
-        editAuthor: async (root, args,context) => {
+        editAuthor: async (root, args, context) => {
             try {
 
                 const currentUser = context.currentUser
