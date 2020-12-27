@@ -140,16 +140,25 @@ const resolvers = {
 
     },
     Author: {
-        bookCount: (root) => {
-            let authorID = Author.findOne({ name: root.name })
+        bookCount: async (root) => {
+            console.log("Book counting")
+            let authorID = await Author.findOne({ name: root.name })
+            console.log(authorID)
+            authorID=authorID._id
+            console.log(authorID)
+            
             if (!authorID) {
+                console.log("Dont be here")
                 //This should not be possible
                 return null
             }
-            return (
-                Book.find({ author: authorID }).length
+            console.log("counting")
+            let books = await Book.find({ author: authorID })
+            let count = await Book.count({author:authorID})
+            console.log(count)
+            return count
                 //books.filter(book => book.author === root.name).length
-            )
+            
         }
 
     },
