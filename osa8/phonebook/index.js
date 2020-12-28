@@ -1,4 +1,4 @@
-const { ApolloServer, UserInputError, gql, AuthenticationError } = require('apollo-server')
+const { ApolloServer, UserInputError, PubSub, gql, AuthenticationError } = require('apollo-server')
 const jwt = require('jsonwebtoken')
 require('dotenv').config()
 const mongoURI = process.env.MONGODB_URI
@@ -10,6 +10,7 @@ const User = require('./models/user')
 
 const { v1: uuid } = require('uuid')
 const author = require('./models/author')
+const pubsub = new PubSub()
 const myPlugin = {
 
     // Fires whenever a GraphQL request is received from a client.
@@ -67,6 +68,11 @@ type Author {
     bookCount: Int
 }
 
+    type Subscription {
+        bookAdded : Book!
+    }
+
+
   type Query {
       allGenres : [String]
       bookCount : Int!
@@ -108,7 +114,7 @@ const resolvers = {
 
             allBooks.forEach(function (book, index) {
                 console.log(book.genres)
-                genreList=genreList.concat(book.genres)
+                genreList = genreList.concat(book.genres)
             });
             console.log("returning genrelist")
             return [...new Set(genreList)]
@@ -144,9 +150,9 @@ const resolvers = {
             console.log("Book counting")
             let authorID = await Author.findOne({ name: root.name })
             console.log(authorID)
-            authorID=authorID._id
+            authorID = authorID._id
             console.log(authorID)
-            
+
             if (!authorID) {
                 console.log("Dont be here")
                 //This should not be possible
@@ -154,11 +160,10 @@ const resolvers = {
             }
             console.log("counting")
             let books = await Book.find({ author: authorID })
-            let count = await Book.count({author:authorID})
-            console.log(count)
+            let count = await Book.count({ author: authorID })
             return count
-                //books.filter(book => book.author === root.name).length
-            
+            //books.filter(book => book.author === root.name).length
+
         }
 
     },
@@ -221,7 +226,9 @@ const resolvers = {
                 console.log("Creating a book with author", author)
                 const book = new Book({ ...args, author: author })
                 await book.save()
+                pubsub.publish('BOOK_ADDED', { bookAdded: book })
                 return book
+
             } catch (err) {
                 throw new UserInputError(err.message, {
                     invalidArgs: args
@@ -255,7 +262,12 @@ const resolvers = {
                 })
             }
         }
-    }
+    },
+    Subscription: {
+        bookAdded: {
+            subscribe: () => pubsub.asyncIterator(['BOOK_ADDED'])
+        },
+    },
 }
 
 const server = new ApolloServer({
@@ -277,6 +289,7 @@ const server = new ApolloServer({
     ]
 })
 
-server.listen().then(({ url }) => {
+server.listen().then(({ url, subscriptionsUrl }) => {
     console.log(`Server ready at ${url}`)
+    console.log(`Subscriptions ready at ${subscriptionsUrl}`)
 })
