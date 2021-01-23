@@ -16,4 +16,8 @@ router.post('/', (req, res) => {
 });
 export default router;
 
+router.get('/:id',(req,res)=>{
 
+  console.log(req.params.id)
+  res.send(patientService.getPatient(req.params.id))
+})
