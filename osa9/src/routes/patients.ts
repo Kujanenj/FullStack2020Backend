@@ -1,10 +1,16 @@
 import express from "express";
 import patientService from "../services/patients";
-import toNewPatient from "../utils"
+import {createEntry,toNewPatient} from "../utils"
 const router = express.Router();
 router.get("/", (_req, res) => {
   let test = patientService.getNonSensitiveEntries()
   res.send(test);
+})
+router.post('/:id/entries',(req,res)=>{
+  const patient = patientService.getPatient(req.params.id)
+  if(!patient) throw new Error('No patient')
+  const newEntry = createEntry(req.body)
+  res.send(patientService.addEntry(newEntry,patient))
 })
 router.post('/', (req, res) => {
 
@@ -15,9 +21,7 @@ router.post('/', (req, res) => {
   res.json(addedPatient);
 });
 export default router;
-
 router.get('/:id',(req,res)=>{
 
-  console.log(req.params.id)
   res.send(patientService.getPatient(req.params.id))
 })

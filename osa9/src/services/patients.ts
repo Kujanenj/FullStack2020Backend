@@ -1,7 +1,11 @@
 import { v4 as uuidv4 } from 'uuid';
-import { Patient, PublicPatient, NewPatient} from "../types";
+import { Patient, PublicPatient, NewPatient, Entry} from "../types";
 import { patients } from '../../data/patients';
 
+const addEntry = (entry : Entry,patient:Patient):Patient=>{
+    patient.entries.push(entry)
+    return patient
+}
 
 const getPatients = (): PublicPatient[] => {
     return patients;
@@ -30,5 +34,6 @@ export default {
     getPatients,
     getPatient,
     addPatient,
-    getNonSensitiveEntries
+    getNonSensitiveEntries,
+    addEntry
 };

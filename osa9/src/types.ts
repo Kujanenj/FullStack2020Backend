@@ -6,6 +6,7 @@ export interface BaseEntry {
   specialist: string;
   diagnosisCodes?: Array<Diagnose['code']>;
 }
+export type NewEntry = Omit<Entry,'id'>
 export interface OccupationalHealthcareEntry extends BaseEntry {
   type: 'OccupationalHealthcare',
   sickLeave?: {
@@ -36,7 +37,7 @@ export enum HealthCheckRating {
   "CriticalRisk" = 3
 }
 
-
+export type partialEntry = Omit<BaseEntry,'id'>
 
 export interface Diagnose {
   code: string,
@@ -52,6 +53,7 @@ export interface Patient {
   ssn: string,
   entries: Entry[]
 }
+
 export type PublicPatient = Omit<Patient, 'ssn' | 'entries'>
 export type NonSensetivePatient = Omit<Patient, 'ssn'>;
 export type NewPatient = Omit<Patient, 'id'>;
